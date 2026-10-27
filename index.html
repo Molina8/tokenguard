@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TokenGuard — descubre qué se come tus tokens</title>
+<meta name="description" content="Analiza gratis el gasto real de tus agentes de código (Codex, Claude Code). Sin subir tu código: el análisis ocurre en tu navegador." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./skin.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23C6F24E'/><path d='M8 22V10h4l4 7 4-7h4v12h-3.4v-7.6L16.9 21h-1.8l-3.7-6.6V22z' fill='%2308080A'/></svg>" />
+</head>
+<body>
+<header class="nav">
+  <a class="brand" href="#top">
+    <span class="brand-mark">◈</span>
+    <span class="brand-name">TokenGuard</span>
+  </a>
+  <nav class="nav-links">
+    <a href="#como">Cómo funciona</a>
+    <a href="#precios">Precios</a>
+    <button class="btn btn-ghost" id="open-auth">Entrar</button>
+  </nav>
+</header>
+
+<main id="top">
+  <!-- ── HERO ─────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="dot"></span> Para quien programa con agentes</p>
+      <h1>Sabes lo que cuesta cada prompt.<br /><em>O eso crees.</em></h1>
+      <p class="lede">
+        Arrastra los logs de Codex, Claude Code, Copilot CLI o Grok Build y en 5 segundos ves
+        dónde se fue el dinero: por proyecto, por modelo, por día, y cuánto quemas en contexto
+        que la caché no aprovecha. <strong>Nada sale de tu navegador.</strong>
+      </p>
+      <div class="hero-cta">
+        <a href="#analizar" class="btn btn-primary">Analizar mis logs gratis</a>
+        <a href="#" id="demo-link" class="micro">o mira un informe de ejemplo →</a>
+      </div>
+    </div>
+    <div class="terminal" aria-hidden="true">
+      <div class="terminal-bar">
+        <span></span><span></span><span></span>
+        <p>tokenguard — informe local</p>
+      </div>
+      <pre class="terminal-body"><span class="t-dim">$</span> npx tokenguard scan
+<span class="t-dim">────────────────────────────────────</span>
+turnos          302
+tokens          33,0 M
+coste estimado  <span class="t-accent">$9.445</span>
+caché acierto   <span class="t-warn">91,6%</span>
+
+elysian-essence    <span class="t-accent">$6.646</span>  <span class="t-bar">████████████</span>
+notion-antigravity <span class="t-accent">$2.767</span>  <span class="t-bar">██████</span>
+
+<span class="t-warn">ahorro posible</span>   $3.101
+<span class="t-dim">↳ input sin caché a precio completo</span></pre>
+    </div>
+  </section>
+
+  <!-- ── DROPZONE / DASHBOARD ─────────────────────── -->
+  <section id="analizar" class="analyzer">
+    <div class="section-head">
+      <h2>1. Suelta tus logs</h2>
+      <p>Se leen en tu navegador: no se envían a ningún servidor. Puedes arrastrar la carpeta entera.</p>
+    </div>
+
+    <div class="sources">
+      <span class="chip">Codex · <code>~/.codex/sessions</code></span>
+      <span class="chip">Claude Code · <code>~/.claude/projects</code></span>
+      <span class="chip">Copilot CLI · <code>~/.copilot/session-state</code></span>
+      <span class="chip">Grok Build · <code>~/.grok/sessions</code></span>
+      <span class="chip">Cualquier JSONL con contadores de tokens</span>
+    </div>
+
+    <div class="picker">
+      <button class="btn btn-primary" id="pick-dir" type="button">Elegir carpeta</button>
+      <span class="micro">o arrástrala aquí abajo · también vale seleccionar archivos sueltos</span>
+    </div>
+
+    <label class="drop" id="drop">
+      <input type="file" id="file-input" multiple webkitdirectory directory hidden />
+      <span class="drop-icon">⤓</span>
+      <span class="drop-title">Arrastra aquí tu carpeta de sesiones</span>
+      <span class="drop-sub">o <u>elige los archivos</u> — se leen en memoria, no se envían a ningún servidor</span>
+    </label>
+    <p class="drop-error" id="drop-error" hidden></p>
+
+    <div class="progress" id="progress" hidden>
+      <div class="progress-head">
+        <span id="progress-label">Leyendo archivos…</span>
+        <span class="mono" id="progress-count">0/0</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <p class="micro" id="progress-sub"></p>
+    </div>
+
+    <div id="dashboard" class="dashboard" hidden>
+      <div class="section-head">
+        <h2>2. Tu informe</h2>
+        <p id="report-meta" class="micro"></p>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Gasto por proyecto</h3>
+          <span class="pill" id="bill-mode">equivalente API</span>
+        </div>
+        <div id="projects" class="bars"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>Por modelo</h3></div>
+          <div id="models" class="bars"></div>
+          <p class="micro" id="models-note" hidden></p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Por día</h3></div>
+          <div id="days" class="days"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Qué te está costando</h3>
+          <span class="pill pill-warn">estimación</span>
+        </div>
+        <ul id="findings" class="diag"></ul>
+      </div>
+
+      <div class="panel panel-solutions" id="solutions-panel">
+        <div class="panel-head">
+          <h3>Qué puedes recortar — y cómo arreglarlo</h3>
+          <span class="pill" id="solutions-saving">—</span>
+        </div>
+        <div id="solutions" class="solutions"></div>
+        <div id="solutions-lock" class="lock" hidden>
+          <p class="lock-title" id="lock-title">Los arreglos están a un registro</p>
+          <p class="micro" id="lock-sub">Creas cuenta gratis y ves los pasos exactos y el prompt para tu agente.</p>
+          <button class="btn btn-primary" id="lock-cta" data-mode="auth">Crear cuenta y ver el arreglo</button>
+        </div>
+        <p class="micro" id="solutions-message" hidden></p>
+      </div>
+
+      <p class="disclaimer">
+        Las cifras son coste equivalente a precio de API con tarifas públicas editables, no tu factura.
+        Si estás en un plan de suscripción, esto es lo que costaría el mismo trabajo por token.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── CÓMO FUNCIONA ────────────────────────────── -->
+  <section id="como" class="how">
+    <div class="section-head">
+      <h2>Cómo funciona</h2>
+      <p>Tres pasos, cero configuración, cero permisos sobre tus cuentas.</p>
+    </div>
+    <ol class="steps">
+      <li><h3>Lee</h3><p>TokenGuard abre los archivos que tu agente ya escribe en disco y saca de ahí el uso real de tokens.</p></li>
+      <li><h3>Calcula</h3><p>Convierte tokens en dólares con la tabla de precios por modelo, incluyendo caché y razonamiento.</p></li>
+      <li><h3>Señala</h3><p>Marca dónde se va el dinero: contexto reenviado, sub-agentes, reintentos y modelos caros para tareas triviales.</p></li>
+    </ol>
+  </section>
+
+  <!-- ── PRECIOS ──────────────────────────────────── -->
+  <section id="precios" class="pricing">
+    <div class="section-head">
+      <h2>Precios</h2>
+      <p>El análisis es gratis y siempre lo será. Se paga el <strong>arreglo</strong>: los pasos y el prompt exacto para tu agente.</p>
+    </div>
+    <div class="price-grid">
+      <div class="price-card">
+        <h3>Análisis</h3>
+        <p class="price">$0<span>/siempre</span></p>
+        <ul>
+          <li>Coste, tokens y proyectos</li>
+          <li>Qué te está costando y cuánto</li>
+          <li>Sin cuenta y sin subir código</li>
+        </ul>
+        <a class="btn btn-ghost" href="#analizar">Analizar</a>
+      </div>
+      <div class="price-card price-card-featured">
+        <div class="badge">Mejor precio</div>
+        <h3>Pack 10 informes</h3>
+        <p class="price">$15<span>= $1,50 c/u</span></p>
+        <ul>
+          <li>10 arreglos completos con prompt</li>
+          <li>Más barato que un café por informe</li>
+          <li>No caducan</li>
+        </ul>
+        <button class="btn btn-primary" data-checkout="pack10">Comprar pack</button>
+      </div>
+      <div class="price-card">
+        <h3>Informe suelto</h3>
+        <p class="price">$4,99<span>/informe</span></p>
+        <ul>
+          <li>1 arreglo completo con prompt</li>
+          <li>Para probar sin compromiso</li>
+          <li>1 informe gratis al crear cuenta</li>
+        </ul>
+        <button class="btn btn-ghost" data-checkout="single">Comprar informe</button>
+      </div>
+    </div>
+    <p class="micro center" id="checkout-note"></p>
+    <p class="micro center">Los créditos se suman a tu cuenta. Cada informe revelado gasta uno; los análisis siguen siendo gratis.</p>
+  </section>
+
+  <!-- ── PRIVACIDAD ───────────────────────────────── -->
+  <section id="datos" class="privacy">
+    <div class="section-head">
+      <h2>Tus datos</h2>
+      <p>Lo que se queda en tu ordenador y lo que viaja, sin letra pequeña.</p>
+    </div>
+    <div class="privacy-grid">
+      <div class="privacy-card">
+        <h3>No sale de tu navegador</h3>
+        <p>Tus logs, tu código y tus prompts <strong>no se suben</strong>. El análisis se ejecuta en la pestaña con JavaScript local: puedes cortar la red y sigue funcionando.</p>
+      </div>
+      <div class="privacy-card">
+        <h3>Si creas cuenta, esto es lo único que se guarda</h3>
+        <p>Números agregados: coste, tokens por modelo, códigos de hallazgo y fecha. <strong>Nunca</strong> nombres de archivo, rutas, mensajes, código ni claves.</p>
+      </div>
+      <div class="privacy-card">
+        <h3>Para qué</h3>
+        <p>Para mostrarte el arreglo, llevar tu saldo de informes y enviarte el aviso de gasto si lo activas. Nada de publicidad ni venta a terceros.</p>
+      </div>
+      <div class="privacy-card">
+        <h3>Tus derechos</h3>
+        <p>Borrado de cuenta y datos cuando quieras, escribiendo a <a href="mailto:hola@tokenguard.app">hola@tokenguard.app</a>. Sin cuenta, no hay nada guardado. Cumplimos RGPD: base legal, consentimiento y derecho de supresión.</p>
+      </div>
+    </div>
+    <p class="micro">Los importes son estimaciones a precio de API con tarifas públicas editables, no una factura.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>TokenGuard · producto de la casa · <span class="mono">v0.1</span></p>
+  <p class="micro">No subimos tu código. Los informes se calculan en tu navegador.</p>
+</footer>
+
+<!-- ── MODAL AUTH ─────────────────────────────────── -->
+<dialog id="auth-dialog" class="dialog">
+  <button class="dialog-close" id="close-auth" aria-label="Cerrar">×</button>
+  <h2 id="auth-title">Entrar</h2>
+  <p class="micro" id="auth-sub">Guarda tus informes y recibe alertas cuando el gasto se dispare.</p>
+  <form id="auth-form" class="form">
+    <label>Email <input type="email" name="email" required autocomplete="email" placeholder="tu@email.com" /></label>
+    <label>Contraseña <input type="password" name="password" required minlength="8" autocomplete="current-password" placeholder="mínimo 8 caracteres" /></label>
+    <button class="btn btn-primary" type="submit" id="auth-submit">Entrar</button>
+  </form>
+  <p class="auth-msg" id="auth-msg" hidden></p>
+  <p class="micro center">¿No tienes cuenta? <a href="#" id="toggle-mode">Crear una</a></p>
+</dialog>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
